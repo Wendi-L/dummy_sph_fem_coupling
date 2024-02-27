@@ -12,3 +12,4 @@ rm -f output.log
 rm -f *.x
 rm -f core.*
 rm -rf build
+rm -rf rbfMatrix*

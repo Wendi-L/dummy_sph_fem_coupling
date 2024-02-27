@@ -133,6 +133,10 @@ int main(int argc, char ** argv) {
 		// SPH fluid domain update (omitted here)
 
 		// push fluid forces to the FEM solver
+		double force_integrationX = 0.0;
+		double force_integrationY = 0.0;
+		double force_integrationZ = 0.0;
+
 		for ( int i = 0; i < Nx; ++i ) {
 			for ( int j = 0; j < Ny; ++j ) {
 				for ( int k = 0; k < Nz; ++k ) {
@@ -141,6 +145,9 @@ int main(int argc, char ** argv) {
 						ifs[0]->push( name_pushX, locp, forceX[i][j][k] );
 						ifs[0]->push( name_pushY, locp, forceY[i][j][k] );
 						ifs[0]->push( name_pushZ, locp, forceZ[i][j][k] );
+						force_integrationX += forceX[i][j][k];
+						force_integrationY += forceY[i][j][k];
+						force_integrationZ += forceZ[i][j][k];
 					}
 				}
 			}
@@ -163,15 +170,9 @@ int main(int argc, char ** argv) {
 		}
 
 		// print the fetched beam deflextions
-		for ( int i = 0; i < Nx; ++i ) {
-			for ( int j = 0; j < Ny; ++j ) {
-				for ( int k = 0; k < Nz; ++k ) {
-					if ((i==0) || (i==(Nx-1)) || (j==(Ny-1))) {
-						printf( "{dummy_SPH} deflection [%d][%d][%d]: %lf, %lf, %lf at timestep %d\n", i, j, k, deflX[i][j][k], deflY[i][j][k], deflZ[i][j][k], n );
-					}
-				}
-			}
-		}
+		printf( "{dummy_SPH} deflection [0][0][0]: %lf, %lf, %lf at timestep %d\n", deflX[0][0][0], deflY[0][0][0], deflZ[0][0][0], n );
+		printf( "{dummy_SPH} force integration pushed: %lf, %lf, %lf at timestep %d\n", force_integrationX, force_integrationY, force_integrationZ, n );
+
 	}
 
 
