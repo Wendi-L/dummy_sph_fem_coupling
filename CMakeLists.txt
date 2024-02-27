@@ -14,4 +14,6 @@ if(MUI_BASE_DIR)
 endif()
 
 add_executable (dummy_SPH_MUI.x dummy_SPH_MUI.cpp)
+add_executable (dummy_SPH_Standalone.x dummy_SPH_Standalone.cpp)
 target_link_libraries (dummy_SPH_MUI.x ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES})
+target_link_libraries (dummy_SPH_Standalone.x ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES})

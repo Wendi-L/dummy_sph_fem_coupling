@@ -37,6 +37,7 @@
  * 
  */
 
+#include <iostream>
 #include "mui.h"
 #include "mui_config.h"
 
@@ -88,7 +89,7 @@ int main(int argc, char ** argv) {
 	double local_z1 = 0;
     double interfacePoint[Nx][Ny][Nz][3], forceX[Nx][Ny][Nz], forceY[Nx][Ny][Nz], forceZ[Nx][Ny][Nz], deflX[Nx][Ny][Nz], deflY[Nx][Ny][Nz], deflZ[Nx][Ny][Nz];
 
-	// Push & Fetch points generation and evaluation
+	// interface points generation and evaluation
 	for ( int i = 0; i < Nx; ++i ) {
         for ( int j = 0; j < Ny; ++j ) {
 			for ( int k = 0; k < Nz; ++k ) {
@@ -97,9 +98,9 @@ int main(int argc, char ** argv) {
 					interfacePoint[i][j][k][1] = local_y0 + ((local_y1-local_y0) / (Ny - 1)) * j;
 					interfacePoint[i][j][k][2] = 0;
 
-					forceX[i][j][k] = 11.111;
-					forceY[i][j][k] = 22.222;
-					forceZ[i][j][k] = 33.333;
+					forceX[i][j][k] = 0.0;
+					forceY[i][j][k] = 0.0;
+					forceZ[i][j][k] = 0.0;
 
 					deflX[i][j][k] = 0.0;
 					deflY[i][j][k] = 0.0;
@@ -126,17 +127,32 @@ int main(int argc, char ** argv) {
 	// Begin time loops
     for ( int n = 1; n < steps; ++n ) {
 
-		printf("\n");
-		printf("{dummy_SPH} %d Step", n );
-		printf("\n");
+		std::cout << std::endl;
+		std::cout << "{dummy_SPH} " << n << " Step" << std::endl;
+		std::cout << std::endl;
 
-		// SPH fluid domain update (omitted here)
-
-		// push fluid forces to the FEM solver
+		// SPH fluid domain update
 		double force_integrationX = 0.0;
 		double force_integrationY = 0.0;
 		double force_integrationZ = 0.0;
 
+		for ( int i = 0; i < Nx; ++i ) {
+	        for ( int j = 0; j < Ny; ++j ) {
+				for ( int k = 0; k < Nz; ++k ) {
+					if ((i==0) || (i==(Nx-1)) || (j==(Ny-1))) {
+						forceX[i][j][k] = 11.111;
+						forceY[i][j][k] = 22.222;
+						forceZ[i][j][k] = 33.333;
+
+						force_integrationX += forceX[i][j][k];
+						force_integrationY += forceY[i][j][k];
+						force_integrationZ += forceZ[i][j][k];
+					}
+				}
+	        }
+		}
+
+		// push fluid forces to the FEM solver
 		for ( int i = 0; i < Nx; ++i ) {
 			for ( int j = 0; j < Ny; ++j ) {
 				for ( int k = 0; k < Nz; ++k ) {
@@ -145,9 +161,6 @@ int main(int argc, char ** argv) {
 						ifs[0]->push( name_pushX, locp, forceX[i][j][k] );
 						ifs[0]->push( name_pushY, locp, forceY[i][j][k] );
 						ifs[0]->push( name_pushZ, locp, forceZ[i][j][k] );
-						force_integrationX += forceX[i][j][k];
-						force_integrationY += forceY[i][j][k];
-						force_integrationZ += forceZ[i][j][k];
 					}
 				}
 			}
@@ -170,11 +183,9 @@ int main(int argc, char ** argv) {
 		}
 
 		// print the fetched beam deflextions
-		printf( "{dummy_SPH} deflection [0][0][0]: %lf, %lf, %lf at timestep %d\n", deflX[0][0][0], deflY[0][0][0], deflZ[0][0][0], n );
-		printf( "{dummy_SPH} force integration pushed: %lf, %lf, %lf at timestep %d\n", force_integrationX, force_integrationY, force_integrationZ, n );
-
+		std::cout << "{dummy_SPH} deflection [0][0][0]: " << deflX[0][0][0] << ", " << deflY[0][0][0] << ", " << deflZ[0][0][0] << " at timestep " << n << std::endl;
+		std::cout << "{dummy_SPH} force integration pushed: " << force_integrationX << ", "<< force_integrationY << ", " << force_integrationZ << " at timestep " << n << std::endl;
 	}
-
 
     return 0;
 }

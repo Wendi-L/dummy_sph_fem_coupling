@@ -20,6 +20,12 @@ make 2>&1 | tee make.log && cd ..
 
 START=$SECONDS
 
+# Run SPH standalone
+mpirun -np 1 ./dummy_SPH_Standalone.x
+
+# Run FEM standalone
+mpirun -np 1 python3 -m mpi4py dummy_FEM_Standalone.py
+
 #NOTE: By using '-m mpi4py' mpi4py module runs the script handling properly
 #      aborts. If a python process exit with failure all processes in MPI_COMM_WORLD       
 #      will be aborted so hangs are avoided.
