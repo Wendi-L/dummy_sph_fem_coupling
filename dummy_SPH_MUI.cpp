@@ -45,6 +45,9 @@ int main(int argc, char ** argv) {
 
 	using namespace mui;
 
+	/// Declare MUI uniface
+	uniface<mui_config> interface( "mpi://sphDomain/couplingInterface"  );
+
 	/// Declare MPI common world with the scope of MUI
 	MPI_Comm  world = mui::mpi_split_by_app();
 
@@ -57,16 +60,6 @@ int main(int argc, char ** argv) {
 	  std::cout << "MPI Size larger than 2 does not supported in this demo case yet." << std::endl;
 			  exit(EXIT_FAILURE);
 	}
-
-	/// Define the name of MUI domain
-	std::string domain = "sphDomain";
-
-	/// Define the name of MUI interfaces
-	std::vector<std::string> interfaces;
-	interfaces.emplace_back( "couplingInterface" );
-
-	/// Declare MUI objects using MUI configure file
-	auto ifs = mui::create_uniface<mui_config>( domain, interfaces );
 
 	// setup parameters
     constexpr static int    Nx        = 5;              // number of particles in x axis
@@ -114,15 +107,15 @@ int main(int argc, char ** argv) {
     geometry::box<mui_config> send_region( {local_x0, local_y0, local_z0}, {local_x1, local_y1, local_z1} );
     geometry::box<mui_config> recv_region( {local_x0, local_y0, local_z0}, {local_x1, local_y1, local_z1} );
     printf( "{dummy_SPH} send region for rank %d: %lf %lf %lf - %lf %lf %lf\n", rank, local_x0, local_y0, local_z0, local_x1, local_y1, local_z1 );
-    ifs[0]->announce_send_span( 0, steps, send_region );
-    ifs[0]->announce_recv_span( 0, steps, recv_region );
+    interface.announce_send_span( 0, steps, send_region );
+    interface.announce_recv_span( 0, steps, recv_region );
 
 	// define spatial and temporal samplers
     sampler_pseudo_nearest_neighbor<mui_config> s1(r);
 	temporal_sampler_exact<mui_config>  s2;
 
 	// commit ZERO step
-	ifs[0]->commit(0);
+	interface.commit(0);
 
 	// Begin time loops
     for ( int n = 1; n < steps; ++n ) {
@@ -158,15 +151,15 @@ int main(int argc, char ** argv) {
 				for ( int k = 0; k < Nz; ++k ) {
 					if ((i==0) || (i==(Nx-1)) || (j==(Ny-1))) {
 						point3d locp( interfacePoint[i][j][k][0], interfacePoint[i][j][k][1], interfacePoint[i][j][k][2] );
-						ifs[0]->push( name_pushX, locp, forceX[i][j][k] );
-						ifs[0]->push( name_pushY, locp, forceY[i][j][k] );
-						ifs[0]->push( name_pushZ, locp, forceZ[i][j][k] );
+						interface.push( name_pushX, locp, forceX[i][j][k] );
+						interface.push( name_pushY, locp, forceY[i][j][k] );
+						interface.push( name_pushZ, locp, forceZ[i][j][k] );
 					}
 				}
 			}
 		}
 		// commit at time step 'n'
-		int sent = ifs[0]->commit( n );
+		int sent = interface.commit( n );
 
 		// fetch beam deflections from the FEM solver
 		for ( int i = 0; i < Nx; ++i ) {
@@ -174,9 +167,9 @@ int main(int argc, char ** argv) {
 				for ( int k = 0; k < Nz; ++k ) {
 					if ((i==0) || (i==(Nx-1)) || (j==(Ny-1))) {
 						point3d locf( interfacePoint[i][j][k][0], interfacePoint[i][j][k][1], interfacePoint[i][j][k][2] );
-						deflX[i][j][k] = ifs[0]->fetch( name_fetchX, locf, n, s1, s2 );
-						deflY[i][j][k] = ifs[0]->fetch( name_fetchY, locf, n, s1, s2 );
-						deflZ[i][j][k] = ifs[0]->fetch( name_fetchZ, locf, n, s1, s2 );
+						deflX[i][j][k] = interface.fetch( name_fetchX, locf, n, s1, s2 );
+						deflY[i][j][k] = interface.fetch( name_fetchY, locf, n, s1, s2 );
+						deflZ[i][j][k] = interface.fetch( name_fetchZ, locf, n, s1, s2 );
 					}
 				}
 			}

@@ -50,14 +50,9 @@ import os
 import mui4py
 
 # MUI parameters
-# Common world claims 
-MUI_COMM_WORLD = mui4py.mpi_split_by_app()
-# Declare MPI ranks
-rank = MUI_COMM_WORLD.Get_rank()
-# Declare MPI size
-size = MUI_COMM_WORLD.Get_size()
 # Define MUI dimension
 dimensionMUI = 3
+
 # Define the name of push/fetch values
 name_pushX = "deflectionX"
 name_pushY = "deflectionY"
@@ -65,6 +60,7 @@ name_pushZ = "deflectionZ"
 name_fetchX = "forceX"
 name_fetchY = "forceY"
 name_fetchZ = "forceZ"
+
 # Define MUI push/fetch data types
 data_types = {name_pushX: mui4py.FLOAT64,
                 name_pushY: mui4py.FLOAT64,
@@ -73,11 +69,16 @@ data_types = {name_pushX: mui4py.FLOAT64,
                 name_fetchY: mui4py.FLOAT64,
                 name_fetchZ: mui4py.FLOAT64}
 # MUI interface creation
-domain = "femDomain"
+URI = "mpi://femDomain/couplingInterface"
 config3d = mui4py.Config(dimensionMUI, mui4py.FLOAT64)
-iface = ["couplingInterface"]
-MUI_Interfaces = mui4py.create_unifaces(domain, iface, config3d)
-MUI_Interfaces["couplingInterface"].set_data_types(data_types)
+iface = mui4py.Uniface(uri=URI, config=config3d)
+iface.set_data_types(data_types)
+# Common world claims
+MUI_COMM_WORLD = mui4py.mpi_split_by_app()
+# Declare MPI ranks
+rank = MUI_COMM_WORLD.Get_rank()
+# Declare MPI size
+size = MUI_COMM_WORLD.Get_size()
 
 #Define parameters of the RBF sampler
 rSampler = 0.6                                  # Define the search radius of the RBF sampler
@@ -142,7 +143,7 @@ for i in range(Nx):
     for j in range(Ny):
         for k in range(Nz):
             if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                point_fetch = MUI_Interfaces["couplingInterface"].Point([interface_Point[c_0][0], interface_Point[c_0][1], interface_Point[c_0][2]])
+                point_fetch = iface.Point([interface_Point[c_0][0], interface_Point[c_0][1], interface_Point[c_0][2]])
                 point3dList.append(point_fetch)
             c_0 += 1
 
@@ -151,8 +152,8 @@ for i in range(Nx):
 # Define and announce MUI send/receive span
 send_span = mui4py.geometry.Box([local_x0, local_y0, local_z0], [local_x1, local_y1, local_z1])
 recv_span = mui4py.geometry.Box([local_x0, local_y0, local_z0], [local_x1, local_y1, local_z1])
-MUI_Interfaces["couplingInterface"].announce_recv_span(0, steps, recv_span, False)
-MUI_Interfaces["couplingInterface"].announce_send_span(0, steps, send_span, False)
+iface.announce_recv_span(0, steps, recv_span, False)
+iface.announce_send_span(0, steps, send_span, False)
 
 # Spatial/temporal samplers
 t_sampler = mui4py.TemporalSamplerExact()
@@ -161,7 +162,7 @@ s_samplerY = mui4py.SamplerRbf(rSampler, point3dList, basisFunc, conservative, s
 s_samplerZ = mui4py.SamplerRbf(rSampler, point3dList, basisFunc, conservative, smoothFunc, generateMatrix, rbfMatrixFolderZ, cutOff, cgSolveTol, cgMaxIter, pouSize, preconditioner, MUI_COMM_WORLD)
 
 # commit ZERO step
-MUI_Interfaces["couplingInterface"].barrier(0)
+iface.barrier(0)
 
 for n in range(1, steps):
     for iter in range(iterations):
@@ -178,9 +179,9 @@ for n in range(1, steps):
             for j in range(Ny):
                 for k in range(Nz):
                     if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                        forceX[c_0]  = MUI_Interfaces["couplingInterface"].fetch("forceX", interface_Point[c_0], n, s_samplerX, t_sampler)
-                        forceY[c_0]  = MUI_Interfaces["couplingInterface"].fetch("forceY", interface_Point[c_0], n, s_samplerY, t_sampler)
-                        forceZ[c_0]  = MUI_Interfaces["couplingInterface"].fetch("forceZ", interface_Point[c_0], n, s_samplerZ, t_sampler)
+                        forceX[c_0]  = iface.fetch("forceX", interface_Point[c_0], n, s_samplerX, t_sampler)
+                        forceY[c_0]  = iface.fetch("forceY", interface_Point[c_0], n, s_samplerY, t_sampler)
+                        forceZ[c_0]  = iface.fetch("forceZ", interface_Point[c_0], n, s_samplerZ, t_sampler)
                         force_integrationX += forceX[c_0]
                         force_integrationY += forceY[c_0]
                         force_integrationZ += forceZ[c_0]
@@ -194,18 +195,18 @@ for n in range(1, steps):
             for j in range(Ny):
                 for k in range(Nz):
                     if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                        MUI_Interfaces["couplingInterface"].push("deflectionX", interface_Point[c_0], deflX[c_0])
-                        MUI_Interfaces["couplingInterface"].push("deflectionY", interface_Point[c_0], deflY[c_0])
-                        MUI_Interfaces["couplingInterface"].push("deflectionZ", interface_Point[c_0], deflZ[c_0])
+                        iface.push("deflectionX", interface_Point[c_0], deflX[c_0])
+                        iface.push("deflectionY", interface_Point[c_0], deflY[c_0])
+                        iface.push("deflectionZ", interface_Point[c_0], deflZ[c_0])
                     c_0 += 1
 
-        commit_return = MUI_Interfaces["couplingInterface"].commit(n)
+        commit_return = iface.commit(n)
         if (rank == 0):
             print ("{dummy_FEM} commit_return: ", commit_return)
 
         # MUI forget function
         if (n > 2):
-            MUI_Interfaces["couplingInterface"].forget(n-2)
+            iface.forget(n-2)
 
         # Print fetched values
         if (rank == 0):
