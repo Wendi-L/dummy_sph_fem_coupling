@@ -2,29 +2,29 @@
  * @file: dummy_SPH_Standalone.cpp
  * @brief: dummy SPH C++ code standalone as a reference for the coupling 
  *         between SPH and FEM solvers.
- *         A 2-D flexible beam, which is 5m higt and 2m thick, clamped at
+ *         A 3-D flexible beam, which is 5m height, 5m deep and 2m thick, clamped at
  *         the bottom. SPH code supposed to calculate fluid forces acting
  *         on the beam.
  *         Note: internal particles/points are omitted for simplicity.
  *
- *                                 
- *                                 
- *      (0,5,0)         (2,5,0)    
- * SPH:        Q Q Q Q Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *             Q o o o Q           
- *     (0,0,0) Q o o o Q (2,0,0)   
- *    ---------------------------  
- *    //////////////////////////   
- *                                 
- *                                 
+ * SPH:     (0,5,5)  Q Q Q Q Q (2,5,5)
+ *                 Q Q Q Q Q Q
+ *               Q Q Q Q Q   Q
+ *     (0,5,0) Q Q Q Q Q     Q
+ *             Q o o o Q     Q
+ *             Q o o o Q     Q
+ *             Q o o o Q     Q
+ *             Q o o o Q     Q
+ *             Q o o o Q     Q
+ *             Q o o o Q     Q
+ *             Q o o o Q     Q (2,0,5)
+ *             Q o o o Q   Q
+ *             Q o o o Q Q
+ *     (0,0,0) Q o o o Q (2,0,0)
+ *    ---------------------------
+ *    //////////////////////////
+ *
+ *
  * 
  * Q: SPH interface particles
  * o: SPH internal particles

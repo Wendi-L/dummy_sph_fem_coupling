@@ -3,23 +3,23 @@
 # @file: dummy_FEM_Standalone.py
 # @brief: dummy FEM Python Standalone code as a reference for the coupling 
 #         between SPH and FEM solvers.
-#         A 2-D flexible beam, which is 5m higt and 2m thick, clamped at
+#         A 3-D flexible beam, which is 5m height, 5m deep and 2m thick, clamped at
 #         the bottom. FEM code supposed to calculate the beam deflections.
 #         Note: internal particles/points are omitted for simplicity.
 #
-#
-#
-#      (0,5,0)         (2,5,0)
-# FEM:        +-+-+-+-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
-#             +-*-*-*-+
+# FEM:     (0,5,5)  +-+-+-+-+ (2,5,5)
+#                 +-+-+-+-+ +
+#               +-+-+-+-+   +
+#     (0,5,0) +-+-+-+-+     +
+#             +-*-*-*-+     +
+#             +-*-*-*-+     +
+#             +-*-*-*-+     +
+#             +-*-*-*-+     +
+#             +-*-*-*-+     +
+#             +-*-*-*-+     +
+#             +-*-*-*-+     + (2,0,5)
+#             +-*-*-*-+   +
+#             +-*-*-*-+ +
 #     (0,0,0) +-*-*-*-+ (2,0,0)
 #    ---------------------------
 #    //////////////////////////
@@ -40,12 +40,12 @@ import numpy as np
 import time
 import os
 
-steps = 10                # number of time steps
+steps = 100                # number of time steps
 iterations = 1            # number of iterations per step
 r = 0.6                    # search radius
 Nx = int(11)
 Ny = int(((Nx-1)*5/2)+1)
-Nz = int(1)
+Nz = int(((Nx-1)*5/2)+1)
 Npoints = Nx*Ny*Nz
 
 local_x0 = 0
@@ -53,7 +53,7 @@ local_y0 = 0
 local_z0 = 0
 local_x1 = 2
 local_y1 = 5
-local_z1 = 0
+local_z1 = 5
 
 # define interface points and evaluation
 interface_Point = np.zeros((Npoints, 3))
@@ -62,7 +62,7 @@ for i in range(Nx):
     for j in range(Ny):
         for k in range(Nz):
             if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                interface_Point[c_0] = [(local_x0 +((local_x1-local_x0)/(Nx-1))*i), (local_y0+((local_y1-local_y0)/(Ny-1))*j), 0.0]
+                interface_Point[c_0] = [(local_x0 +((local_x1-local_x0)/(Nx-1))*i), (local_y0+((local_y1-local_y0)/(Ny-1))*j), (local_z0+((local_z1-local_z0)/(Nz-1))*k)]
             c_0 += 1
 
 deflX = np.zeros(Npoints)

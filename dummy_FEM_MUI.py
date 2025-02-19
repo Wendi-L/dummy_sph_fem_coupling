@@ -2,7 +2,7 @@
 #
 # @file: dummy_FEM_MUI.py
 # @brief: dummy FEM Python code for the coupling between SPH and FEM solvers.
-#         A 2-D flexible beam, which is 5m higt and 2m thick, clamped at
+#         A 3-D flexible beam, which is 5m height, 5m deep and 2m thick, clamped at
 #         the bottom. SPH code supposed to calculate fluid forces acting
 #         on the beam, while the FEM code supposed to calculate the beam
 #         deflections. MUI is used to pass forces of SPH interface particles
@@ -10,24 +10,25 @@
 #         grid points from FEM code to SPH code.
 #         Note: internal particles/points are omitted for simplicity.
 #
-#                                 |
-#                                 |
-#      (0,5,0)         (2,5,0)    |      (0,5,0)         (2,5,0)
-# SPH:        Q Q Q Q Q           | FEM:        +-+-+-+-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#             Q o o o Q           |             +-*-*-*-+
-#     (0,0,0) Q o o o Q (2,0,0)   |     (0,0,0) +-*-*-*-+ (2,0,0)
-#    ---------------------------  |    ---------------------------
-#    //////////////////////////   |    //////////////////////////
-#                                 |
-#                                 |
+#                                     |
+# SPH:     (0,5,5)  Q Q Q Q Q (2,5,5) | FEM:     (0,5,5)  +-+-+-+-+ (2,5,5)
+#                 Q Q Q Q Q Q         |                 +-+-+-+-+ +
+#               Q Q Q Q Q   Q         |               +-+-+-+-+   +
+#     (0,5,0) Q Q Q Q Q     Q         |     (0,5,0) +-+-+-+-+     +
+#             Q o o o Q     Q         |             +-*-*-*-+     +
+#             Q o o o Q     Q         |             +-*-*-*-+     +
+#             Q o o o Q     Q         |             +-*-*-*-+     +
+#             Q o o o Q     Q         |             +-*-*-*-+     +
+#             Q o o o Q     Q         |             +-*-*-*-+     +
+#             Q o o o Q     Q         |             +-*-*-*-+     +
+#             Q o o o Q     Q (2,0,5) |             +-*-*-*-+     + (2,0,5)
+#             Q o o o Q   Q           |             +-*-*-*-+   +
+#             Q o o o Q Q             |             +-*-*-*-+ +
+#     (0,0,0) Q o o o Q (2,0,0)       |     (0,0,0) +-*-*-*-+ (2,0,0)
+#    ---------------------------      |    ---------------------------
+#    //////////////////////////       |    //////////////////////////
+#                                     |
+#                                     |
 # 
 # Q: SPH interface particles
 # o: SPH internal particles
@@ -50,6 +51,14 @@ import os
 import mui4py
 
 # MUI parameters
+# Common world claims
+MUI_COMM_WORLD = mui4py.mpi_split_by_app()
+
+# Declare MPI ranks
+rank = MUI_COMM_WORLD.Get_rank()
+# Declare MPI size
+size = MUI_COMM_WORLD.Get_size()
+
 # Define MUI dimension
 dimensionMUI = 3
 
@@ -69,16 +78,16 @@ data_types = {name_pushX: mui4py.FLOAT64,
                 name_fetchY: mui4py.FLOAT64,
                 name_fetchZ: mui4py.FLOAT64}
 # MUI interface creation
-URI = "mpi://femDomain/couplingInterface"
+domain = "femDomain"
 config3d = mui4py.Config(dimensionMUI, mui4py.FLOAT64)
-iface = mui4py.Uniface(uri=URI, config=config3d)
-iface.set_data_types(data_types)
-# Common world claims
-MUI_COMM_WORLD = mui4py.mpi_split_by_app()
-# Declare MPI ranks
-rank = MUI_COMM_WORLD.Get_rank()
-# Declare MPI size
-size = MUI_COMM_WORLD.Get_size()
+iface = ["threeDInterface0"]
+MUI_Interfaces = mui4py.create_unifaces(domain, iface, config3d)
+MUI_Interfaces["threeDInterface0"].set_data_types(data_types)
+
+# Define the forget steps of MUI to reduce the memory
+forgetSteps = int(5)
+# Define the synchronised boolen for MUI smart send
+synchronised=False
 
 #Define parameters of the RBF sampler
 rSampler = 0.6                                  # Define the search radius of the RBF sampler
@@ -95,12 +104,11 @@ rbfMatrixFolderX = "rbfMatrixX"                 # Output folder for the RBF matr
 rbfMatrixFolderY = "rbfMatrixY"                 # Output folder for the RBF matrix files
 rbfMatrixFolderZ = "rbfMatrixZ"                 # Output folder for the RBF matrix files
 
-steps = 10                # number of time steps
+steps = 1000                # number of time steps
 iterations = 1            # number of iterations per step
-r = 0.6                    # search radius
-Nx = int(11)
+Nx = int(4)
 Ny = int(((Nx-1)*5/2)+1)
-Nz = int(1)
+Nz = int(((Nx-1)*5/2)+1)
 Npoints = Nx*Ny*Nz
 
 local_x0 = 0
@@ -108,7 +116,7 @@ local_y0 = 0
 local_z0 = 0
 local_x1 = 2
 local_y1 = 5
-local_z1 = 0
+local_z1 = 5
 
 # define push and fetch points and evaluation
 interface_Point = np.zeros((Npoints, dimensionMUI))
@@ -116,8 +124,8 @@ c_0 = 0
 for i in range(Nx):
     for j in range(Ny):
         for k in range(Nz):
-            if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                interface_Point[c_0] = [(local_x0 +((local_x1-local_x0)/(Nx-1))*i), (local_y0+((local_y1-local_y0)/(Ny-1))*j), 0.0]
+            if ((i==0) or (i==(Nx-1)) or (j==0) or (j==(Ny-1))) :
+                interface_Point[c_0] = [(local_x0 +((local_x1-local_x0)/(Nx-1))*i), (local_y0+((local_y1-local_y0)/(Ny-1))*j), (local_z0+((local_z1-local_z0)/(Nz-1))*k)]
             c_0 += 1
 
 deflX = np.zeros(Npoints)
@@ -127,9 +135,9 @@ forceX = np.zeros(Npoints)
 forceY = np.zeros(Npoints)
 forceZ = np.zeros(Npoints)
 for i in range(Npoints):
-    deflX[i] = 44.444
-    deflY[i] = 55.555
-    deflZ[i] = 66.666
+    deflX[i] = 0.5
+    deflY[i] = 0.0
+    deflZ[i] = 0.0
     forceX[i] = 0.0
     forceY[i] = 0.0
     forceZ[i] = 0.0
@@ -142,8 +150,8 @@ c_0 = 0
 for i in range(Nx):
     for j in range(Ny):
         for k in range(Nz):
-            if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                point_fetch = iface.Point([interface_Point[c_0][0], interface_Point[c_0][1], interface_Point[c_0][2]])
+            if ((i==0) or (i==(Nx-1)) or (j==0) or (j==(Ny-1))) :
+                point_fetch = MUI_Interfaces["threeDInterface0"].Point([interface_Point[c_0][0], interface_Point[c_0][1], interface_Point[c_0][2]])
                 point3dList.append(point_fetch)
             c_0 += 1
 
@@ -152,8 +160,8 @@ for i in range(Nx):
 # Define and announce MUI send/receive span
 send_span = mui4py.geometry.Box([local_x0, local_y0, local_z0], [local_x1, local_y1, local_z1])
 recv_span = mui4py.geometry.Box([local_x0, local_y0, local_z0], [local_x1, local_y1, local_z1])
-iface.announce_recv_span(0, steps, recv_span, False)
-iface.announce_send_span(0, steps, send_span, False)
+MUI_Interfaces["threeDInterface0"].announce_recv_span(0, steps, recv_span, False)
+MUI_Interfaces["threeDInterface0"].announce_send_span(0, steps, send_span, False)
 
 # Spatial/temporal samplers
 t_sampler = mui4py.TemporalSamplerExact()
@@ -162,7 +170,7 @@ s_samplerY = mui4py.SamplerRbf(rSampler, point3dList, basisFunc, conservative, s
 s_samplerZ = mui4py.SamplerRbf(rSampler, point3dList, basisFunc, conservative, smoothFunc, generateMatrix, rbfMatrixFolderZ, cutOff, cgSolveTol, cgMaxIter, pouSize, preconditioner, MUI_COMM_WORLD)
 
 # commit ZERO step
-iface.barrier(0)
+MUI_Interfaces["threeDInterface0"].barrier(0)
 
 for n in range(1, steps):
     for iter in range(iterations):
@@ -178,10 +186,10 @@ for n in range(1, steps):
         for i in range(Nx):
             for j in range(Ny):
                 for k in range(Nz):
-                    if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                        forceX[c_0]  = iface.fetch("forceX", interface_Point[c_0], n, s_samplerX, t_sampler)
-                        forceY[c_0]  = iface.fetch("forceY", interface_Point[c_0], n, s_samplerY, t_sampler)
-                        forceZ[c_0]  = iface.fetch("forceZ", interface_Point[c_0], n, s_samplerZ, t_sampler)
+                    if ((i==0) or (i==(Nx-1)) or (j==0) or (j==(Ny-1))) :
+                        forceX[c_0]  = MUI_Interfaces["threeDInterface0"].fetch("forceX", interface_Point[c_0], n, s_samplerX, t_sampler)
+                        forceY[c_0]  = MUI_Interfaces["threeDInterface0"].fetch("forceY", interface_Point[c_0], n, s_samplerY, t_sampler)
+                        forceZ[c_0]  = MUI_Interfaces["threeDInterface0"].fetch("forceZ", interface_Point[c_0], n, s_samplerZ, t_sampler)
                         force_integrationX += forceX[c_0]
                         force_integrationY += forceY[c_0]
                         force_integrationZ += forceZ[c_0]
@@ -194,19 +202,19 @@ for n in range(1, steps):
         for i in range(Nx):
             for j in range(Ny):
                 for k in range(Nz):
-                    if ((i==0) or (i==(Nx-1)) or (j==(Ny-1))) :
-                        iface.push("deflectionX", interface_Point[c_0], deflX[c_0])
-                        iface.push("deflectionY", interface_Point[c_0], deflY[c_0])
-                        iface.push("deflectionZ", interface_Point[c_0], deflZ[c_0])
+                    if (((i==0) or (i==(Nx-1)) or (j==0) or (j==(Ny-1))) and (n <= 100)) :
+                        MUI_Interfaces["threeDInterface0"].push("deflectionX", interface_Point[c_0], deflX[c_0])
+                        MUI_Interfaces["threeDInterface0"].push("deflectionY", interface_Point[c_0], deflY[c_0])
+                        MUI_Interfaces["threeDInterface0"].push("deflectionZ", interface_Point[c_0], deflZ[c_0])
                     c_0 += 1
 
-        commit_return = iface.commit(n)
+        commit_return = MUI_Interfaces["threeDInterface0"].commit(n)
         if (rank == 0):
             print ("{dummy_FEM} commit_return: ", commit_return)
 
         # MUI forget function
         if (n > 2):
-            iface.forget(n-2)
+            MUI_Interfaces["threeDInterface0"].forget(n-2)
 
         # Print fetched values
         if (rank == 0):

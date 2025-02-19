@@ -18,20 +18,42 @@ fi
 # Run make to build the executable
 make 2>&1 | tee make.log && cd .. 
 
+# Python path to FEniCSx src
+export PYTHONPATH=${PWD}/ParaSiF_FEniCS_Solver:$PYTHONPATH
+
+domainFluidAlone=${PWD}
+domainStructureAlone=${PWD}/structureDomainAlone
+
+domainFluid=${PWD}
+#domainStructure=${PWD}
+domainStructure=${PWD}/structureDomain
+
+# Ranks set to each domain
+numProcsFluid=1
+numProcsStructure=1
+
+solverFluidAlone=./dummy_SPH_Standalone.x
+solverStructureAlone=structureDomainRun.py
+
+solverFluid=./dummy_SPH_MUI.x
+#solverStructure=dummy_FEM_MUI.py
+solverStructure=structureDomainRun.py
+
 START=$SECONDS
 
 # Run SPH standalone
-mpirun -np 1 ./dummy_SPH_Standalone.x
+#mpirun -np ${numProcsFluid} -wdir ${domainFluidAlone} ${solverFluidAlone}
 
 # Run FEM standalone
-mpirun -np 1 python3 -m mpi4py dummy_FEM_Standalone.py
+#mpirun -np ${numProcsStructure} -wdir ${domainStructureAlone} python3 -m mpi4py ${solverStructureAlone}
 
-#NOTE: By using '-m mpi4py' mpi4py module runs the script handling properly
+# Run SPH-FEM coupling
+# NOTE: By using '-m mpi4py' mpi4py module runs the script handling properly
 #      aborts. If a python process exit with failure all processes in MPI_COMM_WORLD       
 #      will be aborted so hangs are avoided.
 
-mpirun -np 1 ./dummy_SPH_MUI.x :\
-       -np 1 python3 -m mpi4py dummy_FEM_MUI.py 2>&1 | tee output.log
+mpirun -np ${numProcsFluid} -wdir ${domainFluid} ${solverFluid} :\
+       -np ${numProcsStructure} -wdir ${domainStructure} python3 -m mpi4py ${solverStructure} 2>&1 | tee output.log
 
 DURATION=$(( SECONDS - START ))
 
