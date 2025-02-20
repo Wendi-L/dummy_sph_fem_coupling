@@ -125,7 +125,7 @@ int main(int argc, char ** argv) {
 	ifs[0]->commit(0);
 
 	// Begin time loops
-    for ( int n = 1; n < steps; ++n ) {
+    for ( int n = 1; n <= steps; ++n ) {
 
 		std::cout << std::endl;
 		std::cout << "{dummy_SPH} " << n << " Step" << std::endl;
@@ -140,7 +140,7 @@ int main(int argc, char ** argv) {
 	        for ( int j = 0; j < Ny; ++j ) {
 				for ( int k = 0; k < Nz; ++k ) {
 					if (((i==0) || (i==(Nx-1)) || (j==0) || (j==(Ny-1))) && (n <= 100)) {
-						forceX[i][j][k] = 500.0;
+						forceX[i][j][k] = 50.0;
 						forceY[i][j][k] = 0.0;
 						forceZ[i][j][k] = 0.0;
 
@@ -178,9 +178,9 @@ int main(int argc, char ** argv) {
 				for ( int k = 0; k < Nz; ++k ) {
 					if ((i==0) || (i==(Nx-1)) || (j==0) || (j==(Ny-1))) {
 						point3d locf( interfacePoint[i][j][k][0], interfacePoint[i][j][k][1], interfacePoint[i][j][k][2] );
-						deflX[i][j][k] = ifs[0]->fetch( name_fetchX, locf, n, s1, s2 );
-						deflY[i][j][k] = ifs[0]->fetch( name_fetchY, locf, n, s1, s2 );
-						deflZ[i][j][k] = ifs[0]->fetch( name_fetchZ, locf, n, s1, s2 );
+						deflX[i][j][k] = ifs[0]->fetch( name_fetchX, locf, (n-1), s1, s2 );
+						deflY[i][j][k] = ifs[0]->fetch( name_fetchY, locf, (n-1), s1, s2 );
+						deflZ[i][j][k] = ifs[0]->fetch( name_fetchZ, locf, (n-1), s1, s2 );
 					}
 				}
 			}
