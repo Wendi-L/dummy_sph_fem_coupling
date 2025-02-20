@@ -13,3 +13,5 @@ rm -f *.x
 rm -f core.*
 rm -rf build
 rm -rf rbfMatrix*
+rm -rf structureDomain/structureResults/
+rm -rf structureDomainAlone/structureResults/
