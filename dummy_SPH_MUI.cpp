@@ -178,9 +178,9 @@ int main(int argc, char ** argv) {
 				for ( int k = 0; k < Nz; ++k ) {
 					if ((i==0) || (i==(Nx-1)) || (j==0) || (j==(Ny-1))) {
 						point3d locf( interfacePoint[i][j][k][0], interfacePoint[i][j][k][1], interfacePoint[i][j][k][2] );
-						deflX[i][j][k] = ifs[0]->fetch( name_fetchX, locf, (n-1), s1, s2 );
-						deflY[i][j][k] = ifs[0]->fetch( name_fetchY, locf, (n-1), s1, s2 );
-						deflZ[i][j][k] = ifs[0]->fetch( name_fetchZ, locf, (n-1), s1, s2 );
+						deflX[i][j][k] = ifs[0]->fetch( name_fetchX, locf, n, s1, s2 );
+						deflY[i][j][k] = ifs[0]->fetch( name_fetchY, locf, n, s1, s2 );
+						deflZ[i][j][k] = ifs[0]->fetch( name_fetchZ, locf, n, s1, s2 );
 					}
 				}
 			}
