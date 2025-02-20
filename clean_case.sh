@@ -9,6 +9,7 @@ cd build && make clean && cd ..
 # Clean log and results
 rm -f make.log
 rm -f output.log
+rm -f *.btr
 rm -f *.x
 rm -f core.*
 rm -rf build
