@@ -56,7 +56,7 @@ int main(int argc, char ** argv) {
     interfaces.emplace_back(appName);
 
     // Declare MUI objects using MUI configure file
-    std::vector<std::unique_ptr<uniface<mui::mui_config>>> ifs = mui::create_uniface<mui::mui_config>( domainName, interfaces );
+    std::vector<std::unique_ptr<mui::uniface<mui::mui_config>>> ifs = mui::create_uniface<mui::mui_config>( domainName, interfaces );
 
 	/// Declare MPI ranks and rank size
 	int rank, size;
